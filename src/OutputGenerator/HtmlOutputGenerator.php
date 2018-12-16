@@ -1,13 +1,14 @@
 <?php
 declare(strict_types=1);
 
-namespace DiContainerBenchmarks\Outputter;
+namespace DiContainerBenchmarks\OutputGenerator;
 
 use DiContainerBenchmarks\Benchmark\BenchmarkResult;
 use DiContainerBenchmarks\Container\ContainerInterface;
 use DiContainerBenchmarks\TestSuite\TestSuiteInterface;
+use PackageVersions\Versions;
 
-class HtmlOutputter implements OutputterInterface
+class HtmlOutputGenerator implements OutputGeneratorInterface
 {
     /**
      * @var string
@@ -23,7 +24,7 @@ class HtmlOutputter implements OutputterInterface
      * @param TestSuiteInterface[] $testSuites
      * @param ContainerInterface[] $containers
      */
-    public function output(array $testSuites, array $containers, BenchmarkResult $benchmarkResult): void
+    public function generateOutput(array $testSuites, array $containers, BenchmarkResult $benchmarkResult): void
     {
         $now = date("Y-m-d H:i:s");
 
@@ -80,50 +81,44 @@ class HtmlOutputter implements OutputterInterface
             </p>
 
             <p>
-                I have been interested in the topic since then so I wanted to finally conduct a better benchmark than
-                the last one was: I tried to fix its flaws while keeping the good parts. So here is my take!
+                
+                I have been interested in the topic since then - and my curiosity was just growing after I had started
+                to develop my own DI container, Zen - so I wanted to conduct another benchmark that also tries to measure
+                real-life performance, while being as unbiased and reliable as possible. So here is my take! If you have any
+                suggestion in mind about the benchmark or you want to add your container to the list, please create
+                an <a target="_blank" href="https://github.com/kocsismate/php-di-container-benchmarks">issue or a pull request</a>.
             </p>
 
             <p>
-                If you have any suggestion in mind about the benchmark or you want to add your container to the list,
-                please create an <a target="_blank" href="https://github.com/kocsismate/php-di-container-benchmarks">Issue or a Pull Request</a>.
-            </p>
-
-            <p>
-                The containers examined are listed below along with some of their attributes:
+                The examined containers are listed below along with some of their attributes:
             </p>
 
             <table border="1" style="width: 750px;">
                 <thead>
                     <tr>
-                        <th style="width: 50px;">No.</th>
-                        <th style="width: 175px;">Name</th>
-                        <th style="width: 150px;">Compiled/Dynamic</th>
-                        <th style="width: 125px;">Autowiring</th>
-                        <th style="width: 250px;">Project URL</th>
+                        <th style="width: 300px;">Name</th>
+                        <th style="width: 100px;">Version</th>
+                        <th style="width: 175px;">Compiled/Dynamic</th>
+                        <th style="width: 175px;">Autowiring</th>
                     </tr>
                 </thead>
                 <tbody>
 HERE;
         foreach ($containers as $i => $container) {
-            $number = ($i+1);
-            $name = $container->getName();
+            /** @var ContainerInterface $container */
+            $package = $container->getPackage();
+            $version = Versions::getVersion($container->getPackage());
+            $displayedVersion = substr($version, 0, strpos($version, "@"));
             $url = $container->getUrl();
-            $displayedUrl = str_replace(["http://", "https://"], "", $container->getUrl());
             $compiled = $container->isCompiled() ? "compiled" : "dynamic";
             $autowiring = $container->isAutowiringSupported() ? "supported" : "not supported";
 
             $html .= <<<HERE
                     <tr>
-                        <th>$number</th>
-                        <td><b>$name</b></td>
+                        <td><a target="_blank" href="$url"><b>$package</b></a></td>
+                        <td>$displayedVersion</td>
                         <td>$compiled</td>
                         <td>$autowiring</td>
-                        <td>
-                            <a target="_blank" href="$url" style="display:block;width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                $displayedUrl
-                            </a>
-                        </td>
                     </tr>
 HERE;
         }
@@ -163,22 +158,40 @@ HERE;
         <section>
             <h2 id="method">Method</h2>
 
-            <p>
-                Each container is given 4 tasks (test suites) where they have to create or fetch object
-                graphs of different sizes. A test suite contains one or more test cases which define some settings
-                for a test: how many times it has to be repeated (iteration) and if the container startup time
-                should be counted in the time consumption.
+            <p>            
+                Each container is given 6 tasks (Test Suites) where they have to create or fetch object graphs of
+                different sizes (10 or 100 objects). For this purpose, containers are configured either to always
+                instantiate objects (this is usually called as Prototype scope) or to instantiate objects only at
+                the first retrieval and return the same instance on the subsequent calls (which is usually referred to
+                as Singleton scope or shared services).
             </p>
+
             <p>
-                Before measuring each test, containers are warmed up so autoloading can take place and caches
-                can be fed. Then all tests are performed 10 times, but only those results are used when
-                calculating the average time consumption/peak memory usage of a container which are not more than
-                the 120% of the smallest one.
+                There are 3 main types of Test Suites: "Cold" ones (Test Suite 1-2) measure performance including
+                autoloading and startup time of containers as well as autoloading time of the retrieved objects.
+                "Semi-Warm" ones (Test Suite 3-4) measure performance excluding container autoloading time, but
+                including startup time and autoloading time of the retrieved objects, while "Warm" ones (Test Suite 5-6)
+                exclude autoloading and startup time equally. Time of compilation is always excluded from the results
+                due to OPcache.
             </p>
+
             <p>
-                The benchmark is run on a 15-inch MacBook Pro from 2015 using Docker and PHP 7.1. The examined
-                DI Containers are configured for production usage as if it was probably done in case of a big project.
-                That's why I took advantage of autowiring capabilities when possible. Unfortunately, this
+                Each Test Suite contains three Test Cases which define the number of iterations the main task has to be
+                repeated in order to simulate real world usage patterns. This number ranges from 10 to 100 000.
+                Furthermore, all Test Cases are performed 30 times (this is referred to as "runs") in order to improve
+                the accuracy of measurements. The median of these results are displayed in the final results.
+            </p>
+
+            <p>
+                The benchmark is run on a 15-inch MacBook Pro from 2017 (CPU: Intel i7 2,8 GHz; RAM: 16 GB; OS: Mojave),
+                using PHP 7.3 in Docker, OPcache enabled and autoloader optimized (using authoritative mode). During the
+                measurements, a PHP-FPM script served by nginx is executed each time. This is needed because a production
+                environment is simulated much better this way than in the CLI.
+            </p>
+
+            <p>
+                The examined DI Containers are configured for production usage as if it was probably done in case of a
+                big project. That's why I took advantage of autowiring capabilities when possible. Unfortunately, this
                 discriminates some participants giving them a big handicap, but I wanted to measure container
                 performance with a configuration as advertised or recommended by the documentation and most probable
                 to be used in the real world.
@@ -234,9 +247,9 @@ HERE;
                         $memoryBase = $memory ?? null;
                     }
 
-                    $timeColumn = $time ?? "N/A";
+                    $timeColumn = $time !== null ? round($time, 3) : "N/A";
                     $timePercentColumn = $time ? round($time / $timeBase * 100, 0) . "%" : "N/A";
-                    $memoryColumn = $memory ?? "N/A";
+                    $memoryColumn = $memory !== null ? round($memory, 3) : "N/A";
                     $memoryPercentColumn = $memory ? round($memory / $memoryBase * 100, 0) . "%" : "N/A";
 
                     $html .= <<<HERE
@@ -265,22 +278,12 @@ HERE;
             <h2 id="conclusion">Conclusion</h2>
 
             <p>
-                My hypothesis was that different types of containers have significantly different performance
-                characteristics. It can be concluded by looking at the results that the hypothesis can't be rejected as
-                it seems that the more user-friendly a container is (dynamic &gt; compiled, dynamic with autowiring
-                &gt; dynamic without autowiring) the slower it is when creating objects (first 2 test suites). For
-                tasks when a container has to retrieve objects that were created in advance (last 2 test suites),
-                usually other factors affect performance (basically how optimized a container is for this purpose).
-            </p>
-
-            <p>
-                However, keep in mind that in a well-architected application you won't call your DI Container
-                hundreds or even thousands of times because ideally there should be only one
-                <a target="_blank" href="http://blog.ploeh.dk/2011/07/28/CompositionRoot/">composition root</a>:
-                when you invoke the controller(s) which handle(s) the request (but there is a good chance
-                of needing the container in other places of the application layer - e.g. in your middleware or bootstrap
-                files). That's why most results are exaggerated - you probably won't see tens of milliseconds of
-                difference between the fastest and the slowest DIC in the real life.
+                Keep in mind that in a well-architected application you won't call your DI Container
+                hundreds or even thousands of times because ideally there should be as few
+                <a target="_blank" href="http://blog.ploeh.dk/2011/07/28/CompositionRoot/">composition roots</a>
+                as possible (but there is a good chance of needing the container in other places of the application layer -
+                e.g. in your middleware or bootstrap files). That's why most results are exaggerated - you probably won't
+                see milliseconds of difference between the fastest and the slowest DIC in the real life.
             </p>
 
             <p>

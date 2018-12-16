@@ -7,7 +7,17 @@ use DiContainerBenchmarks\Container\ContainerInterface;
 
 class DiceContainer implements ContainerInterface
 {
-    public function getName(): string
+    public function getPackage(): string
+    {
+        return "level-2/dice";
+    }
+
+    public function getNamespace(): string
+    {
+        return "Dice";
+    }
+
+    public function getDisplayedName(): string
     {
         return "Dice";
     }

@@ -6,22 +6,22 @@ namespace DiContainerBenchmarks\Container\Symfony;
 use DiContainerBenchmarks\Container\Symfony\Resource\CompiledPrototypeContainer;
 use DiContainerBenchmarks\Container\Symfony\Resource\CompiledSingletonContainer;
 use DiContainerBenchmarks\Test\TestInterface;
-use Interop\Container\ContainerInterface;
+use Symfony\Component\DependencyInjection\Container;
 
 abstract class AbstractSymfonyTest implements TestInterface
 {
     /**
-     * @var ContainerInterface
+     * @var Container
      */
     protected $container;
 
     protected function setContainerWithPrototypeServices(): void
     {
-        $this->container = new CompiledPrototypeContainer();
+        $this->container = require __DIR__.'/Resource/CompiledPrototypeContainer.php';
     }
 
     protected function setContainerWithSingletonServices(): void
     {
-        $this->container = new CompiledSingletonContainer();
+        $this->container = require __DIR__.'/Resource/CompiledSingletonContainer.php';
     }
 }

@@ -7,7 +7,17 @@ use DiContainerBenchmarks\Container\ContainerInterface;
 
 class DiscoContainer implements ContainerInterface
 {
-    public function getName(): string
+    public function getPackage(): string
+    {
+        return "bitexpert/disco";
+    }
+
+    public function getNamespace(): string
+    {
+        return "Disco";
+    }
+
+    public function getDisplayedName(): string
     {
         return "Disco";
     }
@@ -18,7 +28,7 @@ class DiscoContainer implements ContainerInterface
 
     public function isCompiled(): bool
     {
-        return false;
+        return true;
     }
 
     public function isAutowiringSupported(): bool

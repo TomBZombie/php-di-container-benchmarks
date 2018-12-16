@@ -5,7 +5,11 @@ namespace DiContainerBenchmarks\Container;
 
 interface ContainerInterface
 {
-    public function getName(): string;
+    public function getPackage(): string;
+
+    public function getNamespace(): string;
+
+    public function getDisplayedName(): string;
 
     public function isCompiled(): bool;
 

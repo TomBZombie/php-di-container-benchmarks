@@ -15,21 +15,13 @@ abstract class AbstractDiceTest implements TestInterface
 
     protected function setContainerWithPrototypeServices(): void
     {
-        $container = new Dice();
-        for ($i = 1; $i <= 100; $i++) {
-            $container->addRule('DiContainerBenchmarks\Fixture\Class' . $i, ["shared" => false]);
-        }
-
-        $this->container = $container;
+        $this->container = new Dice();
     }
 
     protected function setContainerWithSingletonServices(): void
     {
         $container = new Dice();
-        for ($i = 1; $i <= 100; $i++) {
-            $container->addRule('DiContainerBenchmarks\Fixture\Class' . $i, ["shared" => true]);
-        }
 
-        $this->container = $container;
+        $this->container = $container->addRule('*', ["shared" => true]);
     }
 }
